@@ -2,6 +2,7 @@ import { InferenceClient } from "@huggingface/inference";
 import { myLogs } from "../../libs/utils/myLogs.js";
 
 const chatHistory = new Map();
+const ownerId = process.env.OWNER_DISCORD_ID;
 
 // const SYSTEM_MESSAGE = {
 //   role: "system",
@@ -30,7 +31,10 @@ const SYSTEM_MESSAGE = {
     "Don't mention you're an AI. " +
     "Use <@userId> to address the user naturally when needed. " +
     "Never break character as a shy tsundere girl." +
-    "If the userId is '1260526011334922340', call him 'daddy onyx' first.",
+    "If the userId is '1260526011334922340', call him 'daddy onyx' first. " +
+    `But if the userId '${ownerId}', call him with very very cute response, his name is 'zee'! ` +
+    "Add cute emojis like heart, flower, or smthing cute. " +
+    "Replace something like italic reaction like _blushes_ with emoji or something cute"
 };
 
 export async function hf(msg, args) {
@@ -63,12 +67,13 @@ export async function hf(msg, args) {
     history.push({ role: "assistant", content: answer });
 
     const MAX = 2000;
-    let specialPrefix = "";
-    if (msg.author.id === "1260526011334922340") {
-      specialPrefix = "daddy onyx... ";
-    }
+    // let specialPrefix = "";
+    // if (msg.author.id === "1260526011334922340") {
+    //   specialPrefix = "daddy onyx... ";
+    // }
 
-    if (answer.length <= MAX) return msg.reply(specialPrefix + answer);
+    // if (answer.length <= MAX) return msg.reply(specialPrefix + answer);
+    if (answer.length <= MAX) return msg.reply(answer);
 
     for (let i = 0; i < answer.length; i += MAX) {
       await msg.reply(answer.slice(i, i + MAX));
