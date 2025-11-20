@@ -1,0 +1,22 @@
+{
+  "name": "shadow-node",
+  "version": "1.0.0",
+  "description": "Automation bot for basketball: zero club",
+  "license": "ISC",
+  "author": "Zee",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon src/index.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.81.1",
+    "chalk": "^5.6.2",
+    "discord.js": "^14.24.2",
+    "dotenv": "^17.2.3",
+    "fs": "^0.0.1-security",
+    "nanoid": "^5.1.6",
+    "path": "^0.12.7"
+  }
+}
