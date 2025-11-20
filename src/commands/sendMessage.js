@@ -1,9 +1,9 @@
 import { myLogs } from "../libs/utils/myLogs.js";
 
 export const sendMsg = async (msg, client, args) => {
-  const allowedRoleId = process.env.DEVELOPER_ROLE_ID;
+  const ownerId = process.env.OWNER_DISCORD_ID;
   
-  if (!msg.member.roles.cache.has(allowedRoleId)) {
+  if (!msg.author.id === ownerId) {
     myLogs(client, "notAllowed", `${msg.author.displayName} trying to send dms but not allowed!`);
     await msg.reply("🚫 You are not allowed.");
     return;

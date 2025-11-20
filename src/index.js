@@ -9,6 +9,8 @@ import { verification, handleRegisterButton, handleRegionSelect } from "./messag
 // Commands
 import { halo } from "./commands/halo.js";
 import { sendMsg } from "./commands/sendMessage.js";
+import { hf } from "./commands/hugging-face/hf.js";
+import { hfttm } from "./commands/hugging-face/hfttm.js";
 
 const client = new Client({
   intents: [
@@ -40,7 +42,13 @@ client.on("messageCreate", async (msg) => {
           halo(client, msg);
           break;
         case "sendmsg":
-          sendMsg(client, msg, args);
+          sendMsg(msg, client, args);
+          break;
+        case "hf":
+          hf(msg, args);
+          break;
+        case "hfttm":
+          hfttm(msg, args);
           break;
         default:
           msg.reply(`Couldn't find **${command}** command.`);
