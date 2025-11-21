@@ -6,10 +6,12 @@ dotenv.config();
 
 import { verification, handleRegisterButton, handleRegionSelect } from "./messages/verification.js";
 
+// Ai
+import { huggingFace } from "./commands/hugging-face/hf.js";
+
 // Commands
 import { halo } from "./commands/halo.js";
 import { sendMsg } from "./commands/sendMessage.js";
-import { hf } from "./commands/hugging-face/hf.js";
 import { hfttm } from "./commands/hugging-face/hfttm.js";
 
 const client = new Client({
@@ -30,7 +32,7 @@ client.once("clientReady", async () => {
 });
 
 client.on("messageCreate", async (msg) => {
-  const channel = msg.channel;
+  huggingFace(client, msg);
 
   if (msg.content.startsWith("$")) {
     const command = msg.content.slice(1).split(" ")[0];
@@ -43,9 +45,6 @@ client.on("messageCreate", async (msg) => {
           break;
         case "sendmsg":
           sendMsg(msg, client, args);
-          break;
-        case "hf":
-          hf(msg, args);
           break;
         case "hfttm":
           hfttm(msg, args);

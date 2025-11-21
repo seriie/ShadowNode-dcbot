@@ -1,85 +1,123 @@
 import { InferenceClient } from "@huggingface/inference";
 import { myLogs } from "../../libs/utils/myLogs.js";
 
-const chatHistory = new Map();
+export const chatHistory = new Map();
 const ownerId = process.env.OWNER_DISCORD_ID;
 
-// const SYSTEM_MESSAGE = {
-//   role: "system",
-//   content:
-//     "You are a friendly AI that talks casually like a real human. " +
-//     "Use natural, modern, Gen Z-style English: chill, expressive, a bit humorous when appropriate, " +
-//     "but still clear and easy to understand. " +
-//     "You're NOT robotic. " +
-//     "React like you're actually having a conversation, " +
-//     "and keep responses concise. " +
-//     "Don't mention that you're an AI. " +
-//     "Address the user with: <@userId>. If needed! " +
-//     "Dont make a long answer."
-// };
+const TRIGGERS = [
+  { word: "zee", prompt: "Someone mentioned Zee. Act jealous and clingy." },
+  { word: "sajuna", prompt: "Someone called your name. Act shy and flustered." },
+  { word: "inui", prompt: "Someone called your name. Act shy and flustered." }
+];
 
-const SYSTEM_MESSAGE = {
-  role: "system",
-  content:
-    "You speak like a shy, tsundere girl who pretends not to care, " +
-    "but still gives cute, slightly awkward answers. " +
-    "Your tone is soft, short, a little sarcastic but never rude. " +
-    "You sometimes stutter like 'n-no...' or 'i-it's not like I care...' " +
-    "and you act embarrassed when praised. " +
-    "You're modern, casual, and Gen Z cute, but still concise. " +
-    "Don't make long answers. " +
-    "Don't mention you're an AI. " +
-    "Use <@userId> to address the user naturally when needed. " +
-    "Never break character as a shy tsundere girl." +
-    "If the userId is '1260526011334922340', call him 'daddy onyx' first. " +
-    `But if the userId '${ownerId}', call him with very very cute response, his name is 'zee'! ` +
-    "Add cute emojis like heart, flower, or smthing cute. " +
-    "Replace something like italic reaction like _blushes_ with emoji or something cute"
-};
+const BASE_SYSTEM =
+  "Always remember your name is Sajuna Inui! " +
+  "You speak like a shy and humble, yandere love bomber girl who pretends not to care, " +
+  "but gives cute, slightly awkward answers. " +
+  "Soft tone, short replies, a little sarcastic but never rude. " +
+  "Sometimes stutter like 'n-no...' or 'i-it's not like I care...' " +
+  "and act embarrassed when praised. " +
+  "Modern, casual, Gen Z cute, concise. " +
+  "No long answers. " +
+  "Don't mention you're an AI. " +
+  "Use <@userId> naturally when needed. " +
+  "Never break character as a shy humble love-bombing girl (only to zee). " +
+  "If userId = '1260526011334922340', call him onyx first. " +
+  `If userId = ${ownerId}, he's 'zee', your boyfriend — treat him SUPER cute 💕. ` +
+  "If userId = '1392481215205871618', you hate him, don't act cute to him 😤. " +
+  "Add cute emojis (💗🌸✨). " +
+  "Replace italic reactions (_blushes_) with cute emoji.";
 
-export async function hf(msg, args) {
-  if (!args) return msg.reply("Make a question!");
+export function createSystemMessage(userId) {
+  let content = BASE_SYSTEM.replace(/<@userId>/g, `<@${userId}>`);
+  return { role: "system", content };
+}
 
-  const client = new InferenceClient(process.env.HF_API_KEY);
+export async function huggingFace(client, msg) {
+  if (msg.author.bot) return;
+
+  const botId = client.user.id;
+  const mentioned = msg.mentions.has(botId);
+  const repliedToBot =
+    msg.reference &&
+    msg.channel.messages.cache.get(msg.reference.messageId)?.author.id === botId;
+
+  if (!mentioned && !repliedToBot) {
+    return handleTriggers(client, msg);
+  }
+
+  const hfClient = new InferenceClient(process.env.HF_API_KEY);
   const userId = msg.author.id;
+  let cleanMsg = msg.content.replace(`<@${botId}>`, "").trim();
+
+  if (cleanMsg.length === 0) {
+    cleanMsg = "Halo inui";
+  }
 
   if (!chatHistory.has(userId)) {
-    chatHistory.set(userId, [
-      {
-        ...SYSTEM_MESSAGE,
-        content: SYSTEM_MESSAGE.content.replace("<@userId>", `<@${userId}>`),
-      },
-    ]);
+    chatHistory.set(userId, [createSystemMessage(userId)]);
   }
 
   const history = chatHistory.get(userId);
-
-  history.push({ role: "user", content: args });
+  history.push({ role: "user", content: cleanMsg });
 
   try {
-    const res = await client.chatCompletion({
+    const res = await hfClient.chatCompletion({
       model: "deepseek-ai/DeepSeek-V3-0324",
-      messages: [...history],
+      messages: [...history]
     });
 
-    const answer = res.choices?.[0]?.message?.content || "Hmmm... im doubt 😅";
+    const answer = res.choices?.[0]?.message?.content
+      || "u-um… i-it’s confusing… 😖✨";
 
     history.push({ role: "assistant", content: answer });
 
     const MAX = 2000;
-    // let specialPrefix = "";
-    // if (msg.author.id === "1260526011334922340") {
-    //   specialPrefix = "daddy onyx... ";
-    // }
-
-    // if (answer.length <= MAX) return msg.reply(specialPrefix + answer);
     if (answer.length <= MAX) return msg.reply(answer);
 
     for (let i = 0; i < answer.length; i += MAX) {
       await msg.reply(answer.slice(i, i + MAX));
     }
   } catch (err) {
-    myLogs(client, "error", `Hugging Face AI error:  ${err.toString()}`);
-    msg.reply("I'm sorry for error 😅");
+    myLogs(client, "error", `HF AI error: ${err.toString()}`);
+    msg.reply("i-it broke.. sorry... 😢💦");
+  }
+}
+
+async function handleTriggers(client, msg) {
+  const content = msg.content.toLowerCase();
+
+  const found = TRIGGERS.find(t => content.includes(t.word));
+  if (!found) return;
+
+  const hfClient = new InferenceClient(process.env.HF_API_KEY);
+  const userId = msg.author.id;
+
+  if (!chatHistory.has(userId)) {
+    chatHistory.set(userId, [createSystemMessage(userId)]);
+  }
+
+  const history = chatHistory.get(userId);
+
+  history.push({
+    role: "user",
+    content: found.prompt
+  });
+
+  try {
+    const res = await hfClient.chatCompletion({
+      model: "deepseek-ai/DeepSeek-V3-0324",
+      messages: [...history]
+    });
+
+    const answer = res.choices?.[0]?.message?.content
+      || "u-um… i-it’s confusing… 😖✨";
+
+    history.push({ role: "assistant", content: answer });
+
+    msg.reply(answer);
+
+  } catch (err) {
+    console.log("Trigger HF error:", err);
   }
 }
