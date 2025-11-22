@@ -4,21 +4,25 @@ import { myLogs } from "./libs/utils/myLogs.js";
 
 dotenv.config();
 
+// Messages
 import { verification, handleRegisterButton, handleRegionSelect } from "./messages/verification.js";
+import { evaluation, handleEvaluateButton, handlePagination, handleSelectPlayer, handleModalSubmit } from "./messages/evaluation.js";
 
-// Ai
-import { huggingFace } from "./commands/hugging-face/hf.js";
+// Ai features
+import { huggingFace } from "./features/hugging-face/hf.js";
 
 // Commands
 import { halo } from "./commands/halo.js";
 import { sendMsg } from "./commands/sendMessage.js";
-import { hfttm } from "./commands/hugging-face/hfttm.js";
+import { hfttm } from "./commands/hfttm.js";
+import { hf } from "./commands/hf.js";
 
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildMembers
   ],
   partials: [Partials.Channel],
 });
@@ -27,8 +31,9 @@ client.once("clientReady", async () => {
   console.log(`✅  Logged in as ${client.user.tag}`);
   myLogs(client, "success", `Logged in as ${client.user.tag}`);
 
-  // Verification
+  // messages
   await verification(client);
+  await evaluation(client);
 });
 
 client.on("messageCreate", async (msg) => {
@@ -46,6 +51,9 @@ client.on("messageCreate", async (msg) => {
         case "sendmsg":
           sendMsg(msg, client, args);
           break;
+        case "hf":
+          hf(msg, args);
+          break;
         case "hfttm":
           hfttm(msg, args);
           break;
@@ -60,6 +68,12 @@ client.on("interactionCreate", async (interaction) => {
   // Verification
   await handleRegisterButton(client, interaction);
   await handleRegionSelect(client, interaction);
+
+  // Evaluation
+  await handleSelectPlayer(client, interaction);
+  await handleModalSubmit(client, interaction);
+  await handleEvaluateButton(client, interaction);
+  await handlePagination(client, interaction);
 });
 
 client.login(process.env.TOKEN);

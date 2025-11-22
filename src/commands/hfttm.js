@@ -1,6 +1,6 @@
 // src/commands/hftom.js
 import { InferenceClient } from "@huggingface/inference";
-import { myLogs } from "../../libs/utils/myLogs.js";
+import { myLogs } from "../libs/utils/myLogs.js";
 import fs from "fs";
 
 export async function hfttm(msg, prompt) {

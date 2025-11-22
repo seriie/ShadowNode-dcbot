@@ -1,13 +1,14 @@
 import { InferenceClient } from "@huggingface/inference";
 import { myLogs } from "../../libs/utils/myLogs.js";
 
+import config from "../../config/bot.json" with { type: "json" };
+
 export const chatHistory = new Map();
 const ownerId = process.env.OWNER_DISCORD_ID;
+const ownerRoleId = process.env.OWNER_ROLE_ID;
 
 const TRIGGERS = [
   { word: "zee", prompt: "Someone mentioned Zee. Act jealous and clingy." },
-  { word: "sajuna", prompt: "Someone called your name. Act shy and flustered." },
-  { word: "inui", prompt: "Someone called your name. Act shy and flustered." }
 ];
 
 const BASE_SYSTEM =
@@ -34,13 +35,23 @@ export function createSystemMessage(userId) {
 }
 
 export async function huggingFace(client, msg) {
+  const member = msg.member;
+  if (!member) return;
+
+  const hasOwnerRole = member.roles.cache.has(ownerRoleId);
+
+  if (!config.commands.hf.isOpen && !hasOwnerRole) {
+    return;
+  }
+
   if (msg.author.bot) return;
 
   const botId = client.user.id;
   const mentioned = msg.mentions.has(botId);
   const repliedToBot =
     msg.reference &&
-    msg.channel.messages.cache.get(msg.reference.messageId)?.author.id === botId;
+    msg.channel.messages.cache.get(msg.reference.messageId)?.author.id ===
+      botId;
 
   if (!mentioned && !repliedToBot) {
     return handleTriggers(client, msg);
@@ -64,11 +75,11 @@ export async function huggingFace(client, msg) {
   try {
     const res = await hfClient.chatCompletion({
       model: "deepseek-ai/DeepSeek-V3-0324",
-      messages: [...history]
+      messages: [...history],
     });
 
-    const answer = res.choices?.[0]?.message?.content
-      || "u-um… i-it’s confusing… 😖✨";
+    const answer =
+      res.choices?.[0]?.message?.content || "u-um… i-it’s confusing… 😖✨";
 
     history.push({ role: "assistant", content: answer });
 
@@ -87,7 +98,7 @@ export async function huggingFace(client, msg) {
 async function handleTriggers(client, msg) {
   const content = msg.content.toLowerCase();
 
-  const found = TRIGGERS.find(t => content.includes(t.word));
+  const found = TRIGGERS.find((t) => content.includes(t.word));
   if (!found) return;
 
   const hfClient = new InferenceClient(process.env.HF_API_KEY);
@@ -101,23 +112,23 @@ async function handleTriggers(client, msg) {
 
   history.push({
     role: "user",
-    content: found.prompt
+    content: found.prompt,
   });
 
   try {
     const res = await hfClient.chatCompletion({
       model: "deepseek-ai/DeepSeek-V3-0324",
-      messages: [...history]
+      messages: [...history],
     });
 
-    const answer = res.choices?.[0]?.message?.content
-      || "u-um… i-it’s confusing… 😖✨";
+    const answer =
+      res.choices?.[0]?.message?.content || "u-um… i-it’s confusing… 😖✨";
 
     history.push({ role: "assistant", content: answer });
 
     msg.reply(answer);
-
   } catch (err) {
     console.log("Trigger HF error:", err);
+    myLogs(client, "error", `HF Trigger AI error: ${err.toString()}`);
   }
 }
