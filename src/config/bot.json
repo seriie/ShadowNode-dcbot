@@ -1,7 +1,7 @@
 {
   "commands": {
     "hf": {
-      "isOpen": false
+      "isOpen": true
     }
   }
 }

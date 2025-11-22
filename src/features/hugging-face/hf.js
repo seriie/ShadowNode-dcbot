@@ -1,7 +1,7 @@
 import { InferenceClient } from "@huggingface/inference";
 import { myLogs } from "../../libs/utils/myLogs.js";
 
-import config from "../../config/bot.json" with { type: "json" };
+import { getConfig } from "../../config/getConfig.js";
 
 export const chatHistory = new Map();
 const ownerId = process.env.OWNER_DISCORD_ID;
@@ -37,7 +37,8 @@ export function createSystemMessage(userId) {
 export async function huggingFace(client, msg) {
   const member = msg.member;
   if (!member) return;
-
+  const config = getConfig();
+  
   const hasOwnerRole = member.roles.cache.has(ownerRoleId);
 
   if (!config.commands.hf.isOpen && !hasOwnerRole) {
