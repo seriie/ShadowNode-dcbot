@@ -1,7 +1,11 @@
 {
   "commands": {
     "hf": {
-      "isOpen": true
+      "isOpen": true,
+      "bannedId": [
+        "2436262653265265",
+        "4355432453254235423" 
+      ]
     }
   }
 }

@@ -35,10 +35,14 @@ export function createSystemMessage(userId) {
 }
 
 export async function huggingFace(client, msg) {
+  const config = getConfig();
+  const isBanned = config.commands.hf.bannedId.includes(msg.author.id);
+  if (isBanned) {
+    return;
+  }
   const member = msg.member;
   if (!member) return;
-  const config = getConfig();
-  
+
   const hasOwnerRole = member.roles.cache.has(ownerRoleId);
 
   if (!config.commands.hf.isOpen && !hasOwnerRole) {
