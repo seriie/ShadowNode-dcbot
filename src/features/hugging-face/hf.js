@@ -1,7 +1,7 @@
 import { InferenceClient } from "@huggingface/inference";
 import { myLogs } from "../../libs/utils/myLogs.js";
 
-import { getConfig } from "../../config/getConfig.js";
+import { getConfig } from "../../helper/getConfig.js";
 
 export const chatHistory = new Map();
 const ownerId = process.env.OWNER_DISCORD_ID;
