@@ -96,7 +96,9 @@ export function hf(msg, args) {
       return msg.reply(`✅ <@${target.id}> unbanned... w-welcome back 😳`);
     }
 
-    msg.reply("❓ choose `open`, `close`, `ban`, `unban` b-baka 😭");
+    if (!option) {
+      msg.reply("❓ choose `open`, `close`, `ban`, `unban` b-baka 😭");
+    }
   } catch (e) {
     console.log(e);
     msg.reply("❌ Error config... hiks 😢");
