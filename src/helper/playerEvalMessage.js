@@ -19,7 +19,7 @@ export function playerEvalMessage({
   textMsg += `**Note:** ${note}\n\n`;
   textMsg += `**OVR:** ${makeProgressBar(ovr, 10)}\n`;
   textMsg += `**Rank:** ${rank}\n`;
-  textMsg += `**Recorded by:** ${ranker}\n`;
+  textMsg += `**Evaluator:** <@${ranker}>\n`;
   textMsg += `-# Eval ID: **${evalId}**\n`;
 
   return textMsg;

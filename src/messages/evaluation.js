@@ -412,7 +412,7 @@ export const handleModalSubmit = async (client, interaction) => {
         note,
         ovr,
         rank: rank,
-        ranker: interaction.user.username,
+        ranker: interaction.user.id,
         evalId,
       });
 
