@@ -14,6 +14,8 @@ import { bulkDelete } from "../helper/bulkDelete.js";
 import { embedBuilder } from "../helper/embedBuilder.js";
 import { fetchUser } from "../helper/fetchUser.js";
 import { getAllPlayers } from "../helper/getAllPlayers.js";
+import { playerEvalMessage } from "../helper/playerEvalMessage.js";
+import { setEvalRank } from "../helper/setEvalRank.js";
 
 export const evaluation = async (client) => {
   const channelId = process.env.EVALUATION_CHANNEL_ID;
@@ -189,7 +191,7 @@ export const handleSelectPlayer = async (client, interaction) => {
   myLogs(client, "loading", `${user.username} selected ${displayName}!`);
 
   const modal = new ModalBuilder()
-    .setCustomId(`rank_modal_${player}`)
+    .setCustomId(`rank_modal_step1_${player}`)
     .setTitle(`🏀 Rank ${displayName}`);
 
   const skills = [
@@ -217,75 +219,245 @@ export const handleSelectPlayer = async (client, interaction) => {
 
 export const handleModalSubmit = async (client, interaction) => {
   if (!interaction.isModalSubmit()) return;
-  if (!interaction.customId.startsWith("rank_modal_")) return;
+  client.tempEval = client.tempEval || {};
 
-  const player = interaction.customId.replace("rank_modal_", "");
-  const skills = [
-    "offense",
-    "defense",
-    "playmaking",
-    "style_mastery",
-    "vision",
+  // --- STEP 1: SKILL MODAL ---
+  if (interaction.customId.startsWith("rank_modal_step1")) {
+    const player = interaction.customId.replace("rank_modal_step1_", "");
+    const skills = [
+      "offense",
+      "defense",
+      "playmaking",
+      "style_mastery",
+      "vision",
+    ];
+
+    const data = {};
+    for (const s of skills) {
+      data[s] = parseFloat(interaction.fields.getTextInputValue(s));
+    }
+
+    client.tempEval[interaction.user.id] = {
+      player,
+      skills: data,
+    };
+
+    const modal = new ModalBuilder()
+      .setCustomId(`rank_modal_step2_${player}`)
+      .setTitle("📝 Evaluation Details");
+
+    const fields = [
+      { id: "reasoning", label: "Reasoning", placeholder: "Why tho?" },
+      {
+        id: "improvement",
+        label: "Improvement",
+        placeholder: "What should they fix?",
+      },
+      { id: "note", label: "Note", placeholder: "Anything else?" },
+    ];
+
+    modal.addComponents(
+      fields.map((f) =>
+        new ActionRowBuilder().addComponents(
+          new TextInputBuilder()
+            .setCustomId(f.id)
+            .setLabel(f.label)
+            .setStyle(TextInputStyle.Paragraph)
+            .setPlaceholder(f.placeholder)
+            .setRequired(true)
+        )
+      )
+    );
+
+    await interaction.reply({
+      content: "Step 2 ready! Click the button below to continue :D",
+      ephemeral: true,
+      components: [
+        new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId(`open_step2_${player}`)
+            .setLabel("Open Step 2")
+            .setStyle(ButtonStyle.Primary)
+        ),
+      ],
+    });
+
+    return;
+  }
+
+  // --- STEP 2: FINAL MODAL ---
+  if (interaction.customId.startsWith("rank_modal_step2_")) {
+    const player = interaction.customId.replace("rank_modal_step2_", "");
+    const evalId = nanoIdFormat("EID", 10);
+
+    const temp = client.tempEval[interaction.user.id];
+    if (!temp) {
+      return interaction.reply({
+        content: "❌ Data expired, please retry.",
+        ephemeral: true,
+      });
+    }
+
+    const skills = temp.skills;
+
+    const reasoning = interaction.fields.getTextInputValue("reasoning");
+    const improvement = interaction.fields.getTextInputValue("improvement");
+    const note = interaction.fields.getTextInputValue("note");
+
+    const total = Object.values(skills).reduce((a, b) => a + b, 0);
+    const ovr = total / Object.keys(skills).length;
+    const rank = setEvalRank(ovr);
+
+    const { data: user } = await supabase
+      .from("users")
+      .select("region")
+      .eq("discord_id", player)
+      .single();
+
+    const region = user.region;
+
+    const tierRoles = {
+      1: {
+        AS: process.env.TIER_1_AS,
+        EU: process.env.TIER_1_EU,
+        NA: process.env.TIER_1_NA,
+      },
+      2: {
+        AS: process.env.TIER_2_AS,
+        EU: process.env.TIER_2_EU,
+        NA: process.env.TIER_2_NA,
+      },
+      3: {
+        AS: process.env.TIER_3_AS,
+        EU: process.env.TIER_3_EU,
+        NA: process.env.TIER_3_NA,
+      },
+      4: {
+        AS: process.env.TIER_4_AS,
+        EU: process.env.TIER_4_EU,
+        NA: process.env.TIER_4_NA,
+      },
+      5: {
+        AS: process.env.TIER_5_AS,
+        EU: process.env.TIER_5_EU,
+        NA: process.env.TIER_5_NA,
+      },
+      6: {
+        AS: process.env.TIER_6_AS,
+        EU: process.env.TIER_6_EU,
+        NA: process.env.TIER_6_NA,
+      },
+      7: {
+        AS: process.env.TIER_7_AS,
+        EU: process.env.TIER_7_EU,
+        NA: process.env.TIER_7_NA,
+      },
+    };
+
+    const userRegion = user.region || null;
+    const tierNumber = parseInt(rank.replace("Tier ", ""));
+    const roleId = tierRoles[tierNumber][userRegion] || null;
+    const guildMember = await interaction.guild.members.fetch(player);
+
+    const allRankRoles = Object.values(tierRoles).flatMap((t) =>
+      Object.values(t)
+    );
+
+    for (const r of guildMember.roles.cache.keys()) {
+      if (allRankRoles.includes(r)) {
+        await guildMember.roles.remove(r);
+      }
+    }
+    
+    await guildMember.roles.add(roleId);
+
+    const { data: userData } = await supabase
+      .from("users")
+      .select("discord_id")
+      .eq("discord_id", player)
+      .single();
+
+    const { error } = await supabase.from("evals").insert([
+      {
+        id: evalId,
+        created_at: new Date().toISOString(),
+        discord_id: userData.discord_id,
+        evaluator_dc_id: interaction.user.id,
+        ovr,
+        ...skills,
+        reasoning,
+        improvement,
+        note,
+        rank,
+      },
+    ]);
+
+    delete client.tempEval[interaction.user.id];
+
+    const evalResultChannelId = process.env.EVAL_RESULTS_CHANNEL_ID;
+    const evalResultChannel = await interaction.client.channels
+      .fetch(evalResultChannelId)
+      .catch(() => null);
+
+    const { count } = await supabase
+      .from("evals")
+      .select("*", { count: "exact", head: true });
+
+    if (evalResultChannel) {
+      const msg = playerEvalMessage({
+        count: count || 0,
+        player: userData.discord_id,
+        reasoning,
+        improvement,
+        note,
+        ovr,
+        rank: rank,
+        ranker: interaction.user.username,
+        evalId,
+      });
+
+      await evalResultChannel.send(msg);
+    }
+
+    return interaction.reply({
+      content: `✅ Evaluation saved! OVR: **${ovr.toFixed(2)}**`,
+      ephemeral: true,
+    });
+  }
+};
+
+export const handleOpenStep2 = async (interaction) => {
+  if (!interaction.isButton()) return;
+  if (!interaction.customId.startsWith("open_step2_")) return;
+
+  const player = interaction.customId.replace("open_step2_", "");
+
+  const modal = new ModalBuilder()
+    .setCustomId(`rank_modal_step2_${player}`)
+    .setTitle("📝 Evaluation Details");
+
+  const fields = [
+    { id: "reasoning", label: "Reasoning", placeholder: "Why tho?" },
+    {
+      id: "improvement",
+      label: "Improvement",
+      placeholder: "What should they fix?",
+    },
+    { id: "note", label: "Note", placeholder: "Anything else?" },
   ];
 
-  const fetchedUser = await fetchUser(client, player);
-  const displayName = fetchedUser?.displayName || "Unknown";
-
-  const data = {};
-  for (const s of skills) {
-    data[s] = parseFloat(interaction.fields.getTextInputValue(s));
-  }
-
-  // 🧮 Calculate the average score
-  const total = Object.values(data).reduce((acc, val) => acc + val, 0);
-  const ovr = total / skills.length;
-
-  // find user_id based on username
-  const { data: userData, error: userError } = await supabase
-    .from("users")
-    .select("discord_id")
-    .eq("discord_id", player)
-    .single();
-
-  if (userError || !userData) {
-    myLogs("🔎  User not found:", userError);
-    return interaction.reply({
-      content: "❌ Player not found in database.",
-      ephemeral: true,
-    });
-  }
-
-  const discordId = userData.discord_id;
-
-  // Save to rankings
-  const { error } = await supabase.from("evals").insert([
-    {
-      id: nanoIdFormat("EID", 10),
-      created_at: new Date().toISOString(),
-      ...data,
-      discord_id: discordId,
-      ovr,
-    },
-  ]);
-
-  if (error) {
-    myLogs(client, "error", `Error saving ranking: ${JSON.stringify(error, null, 2)}`);
-    return interaction.reply({
-      content: "❌ Failed to save data.",
-      ephemeral: true,
-    });
-  }
-
-  myLogs(
-    client,
-    "success",
-    `${interaction.user.username} have ranked ${displayName}`
+  modal.addComponents(
+    fields.map((f) =>
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId(f.id)
+          .setLabel(f.label)
+          .setStyle(TextInputStyle.Paragraph)
+          .setPlaceholder(f.placeholder)
+          .setRequired(true)
+      )
+    )
   );
 
-  await interaction.reply({
-    content: `✅ Ranking for **${displayName}** saved successfully! Average rank: **${ovr.toFixed(
-      2
-    )}** 🏀`,
-    ephemeral: true,
-  });
+  return interaction.showModal(modal);
 };

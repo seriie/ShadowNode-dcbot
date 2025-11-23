@@ -24,7 +24,7 @@ export const verification = async (client) => {
   const embedData = embedBuilder(
     "#ff0000",
     "🧠 Member Verification",
-    "Welcome to the server! Click the button below to register as a player.\n\nOnce registered, you’ll be added to the ranking list and gain access to ranking features!",
+    "Welcome to the server! Click the button below to register as a player.\n\nOnce registered, you’ll be added to the tryout list and gain access to tryout features!",
     null,
     "Press the button only once!",
     true

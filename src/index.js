@@ -1,12 +1,37 @@
 import { Client, GatewayIntentBits, Partials } from "discord.js";
 import dotenv from "dotenv";
 import { myLogs } from "./libs/utils/myLogs.js";
+import { startTerminal } from "./helper/startTerminal.js";
+
+startTerminal({
+  hello: async () => {
+    console.log("👋 Hello there!");
+  },
+  ban: async (args) => {
+    console.log(`🚫 Simulasi ban user: ${args[0] || "no user specified"}`);
+  },
+  exit: async () => {
+    console.log("Bye!");
+    process.exit(0);
+  },
+});
 
 dotenv.config();
 
 // Messages
-import { verification, handleRegisterButton, handleRegionSelect } from "./messages/verification.js";
-import { evaluation, handleEvaluateButton, handlePagination, handleSelectPlayer, handleModalSubmit } from "./messages/evaluation.js";
+import {
+  verification,
+  handleRegisterButton,
+  handleRegionSelect,
+} from "./messages/verification.js";
+import {
+  evaluation,
+  handleEvaluateButton,
+  handlePagination,
+  handleSelectPlayer,
+  handleModalSubmit,
+  handleOpenStep2,
+} from "./messages/evaluation.js";
 
 // Ai features
 import { huggingFace } from "./features/hugging-face/hf.js";
@@ -16,13 +41,15 @@ import { halo } from "./commands/halo.js";
 import { sendMsg } from "./commands/sendMessage.js";
 import { hfttm } from "./commands/hfttm.js";
 import { hf } from "./commands/hf.js";
+import { fetchUser } from "./commands/fetchUser.js";
 
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
-    GatewayIntentBits.GuildMembers
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.DirectMessages,
   ],
   partials: [Partials.Channel],
 });
@@ -39,6 +66,21 @@ client.once("clientReady", async () => {
 client.on("messageCreate", async (msg) => {
   huggingFace(client, msg);
 
+  const botCommandChannelId = process.env.BOT_COMMAND_CHANNEL_ID;
+  const botCommandChannel = await client.channels.fetch(botCommandChannelId);
+
+  if (!botCommandChannel) return console.log("⚠️ Log channel not found!");
+
+  if (msg.channel.isDMBased()) {
+    if (msg.author.bot) return;
+    
+    botCommandChannel.send(
+      `📩 **DM from ${msg.author.tag} (${msg.author.id})**:\n${msg.content}`
+    );
+
+    console.log(`DM fom ${msg.author.tag} (${msg.author.id}): ${msg.content}`);
+  }
+
   if (msg.content.startsWith("$")) {
     const command = msg.content.slice(1).split(" ")[0];
     const args = msg.content.slice(command.length + 1).trim();
@@ -52,10 +94,13 @@ client.on("messageCreate", async (msg) => {
           sendMsg(msg, client, args);
           break;
         case "hf":
-          hf(msg, args);
+          await hf(msg, args);
           break;
         case "hfttm":
           hfttm(msg, args);
+          break;
+        case "fetchuser":
+          await fetchUser(client, msg, args);
           break;
         default:
           msg.reply(`Couldn't find **${command}** command.`);
@@ -74,6 +119,7 @@ client.on("interactionCreate", async (interaction) => {
   await handleModalSubmit(client, interaction);
   await handleEvaluateButton(client, interaction);
   await handlePagination(client, interaction);
+  await handleOpenStep2(interaction);
 });
 
 client.login(process.env.TOKEN);

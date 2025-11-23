@@ -1,0 +1,6 @@
+{
+  "ignore": [
+    "README.md",
+    "src/config/bot.json"
+  ]
+}

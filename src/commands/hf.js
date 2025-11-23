@@ -8,7 +8,7 @@ const __dirname = path.dirname(__filename);
 const ownerRoleId = process.env.OWNER_ROLE_ID;
 const ownerId = process.env.OWNER_DISCORD_ID;
 
-export function hf(msg, args) {
+export async function hf(msg, args) {
   const member = msg.member;
   if (!member) return;
 
@@ -17,11 +17,14 @@ export function hf(msg, args) {
     return msg.reply("❌ You are not allowed heh... b-baka 😤");
   }
 
-  if (args.length < 2) {
+  if (args.length < 1) {
     return msg.reply("⚙️ Give command: `open`, `close`, `ban`, `unban` 😭");
   }
 
-  const option = args[1].toLowerCase();
+  const arg = args.split(" ");
+  const option = arg[0]?.toLowerCase();
+  const targetArg = arg[1];
+
   const configPath = path.resolve(__dirname, "../config/bot.json");
 
   try {
@@ -51,12 +54,28 @@ export function hf(msg, args) {
 
     // ===== BAN =====
     if (option === "ban") {
-      const target =
-        msg.mentions.users.first() ||
-        (msg.reference &&
-          msg.channel.messages.cache.get(msg.reference.messageId)?.author);
+      let target = msg.mentions.users.first();
 
-      if (!target) return msg.reply("😭 Mention the person to ban... b-bakaaa");
+      // kalo ga ada mention, coba parse dari args[1]
+      if (!target && targetArg) {
+        const match = targetArg.match(/^<@!?(\d+)>$/);
+        if (match) target = msg.client.users.cache.get(match[1]);
+      }
+
+      // kalo masih ga ada, coba dari reply
+      if (!target && msg.reference) {
+        try {
+          const refMsg = await msg.channel.messages.fetch(
+            msg.reference.messageId
+          );
+          target = refMsg.author;
+        } catch (err) {
+          console.log("Failed to fetch referenced message:", err);
+        }
+      }
+
+      if (!target)
+        return msg.reply("😭 Mention or reply the person to ban... b-bakaaa");
 
       if (config.commands.hf.bannedId.includes(target.id)) {
         return msg.reply(
@@ -66,21 +85,35 @@ export function hf(msg, args) {
 
       config.commands.hf.bannedId.push(target.id);
       writeFileSync(configPath, JSON.stringify(config, null, 2));
-
       return msg.reply(`🚫 <@${target.id}> banned from HF, bye~ 😤✋`);
     }
 
     // ===== UNBAN =====
     if (option === "unban") {
-      const target =
-        msg.mentions.users.first() ||
-        (msg.reference &&
-          msg.channel.messages.cache.get(msg.reference.messageId)?.author);
+      let target;
+
+      if (msg.mentions.users.first()) {
+        target = msg.mentions.users.first();
+      } else if (msg.reference) {
+        try {
+          const refMsg = await msg.channel.messages.fetch(
+            msg.reference.messageId
+          );
+          target = refMsg.author;
+        } catch (err) {
+          console.log("Failed to fetch referenced message:", err);
+        }
+      }
 
       if (!target)
-        return msg.reply("😭 Mention the person to unban... b-bakaaa");
+        return msg.reply(
+          "😭 Mention or reply to the person to unban... b-bakaaa"
+        );
 
-      // CEK KALO DIA EMANG GA KE BAN
+      config.commands.hf.bannedId = config.commands.hf.bannedId.map((id) =>
+        id.trim()
+      );
+
       if (!config.commands.hf.bannedId.includes(target.id)) {
         return msg.reply(
           `🤨 <@${target.id}> is **not banned**... what ru doing 😭`

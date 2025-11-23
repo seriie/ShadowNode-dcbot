@@ -45,7 +45,7 @@ export async function huggingFace(client, msg) {
 
   const hasOwnerRole = member.roles.cache.has(ownerRoleId);
 
-  if (!config.commands.hf.isOpen && !hasOwnerRole) {
+  if (!config.commands.hf.isOpen && !hasOwnerRole && msg.author.id !== ownerId) {
     return;
   }
 
