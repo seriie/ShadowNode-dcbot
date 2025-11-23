@@ -321,36 +321,43 @@ export const handleModalSubmit = async (client, interaction) => {
         AS: process.env.TIER_1_AS,
         EU: process.env.TIER_1_EU,
         NA: process.env.TIER_1_NA,
+        OCE: process.env.TIER_1_OCE,
       },
       2: {
         AS: process.env.TIER_2_AS,
         EU: process.env.TIER_2_EU,
         NA: process.env.TIER_2_NA,
+        OCE: process.env.TIER_2_OCE,
       },
       3: {
         AS: process.env.TIER_3_AS,
         EU: process.env.TIER_3_EU,
         NA: process.env.TIER_3_NA,
+        OCE: process.env.TIER_3_OCE,
       },
       4: {
         AS: process.env.TIER_4_AS,
         EU: process.env.TIER_4_EU,
         NA: process.env.TIER_4_NA,
+        OCE: process.env.TIER_4_OCE,
       },
       5: {
         AS: process.env.TIER_5_AS,
         EU: process.env.TIER_5_EU,
         NA: process.env.TIER_5_NA,
+        OCE: process.env.TIER_5_OCE,
       },
       6: {
         AS: process.env.TIER_6_AS,
         EU: process.env.TIER_6_EU,
         NA: process.env.TIER_6_NA,
+        OCE: process.env.TIER_6_OCE,
       },
       7: {
         AS: process.env.TIER_7_AS,
         EU: process.env.TIER_7_EU,
         NA: process.env.TIER_7_NA,
+        OCE: process.env.TIER_7_OCE,
       },
     };
 
