@@ -94,7 +94,7 @@ client.on("messageCreate", async (msg) => {
           sendMsg(msg, client, args);
           break;
         case "hf":
-          await hf(msg, args);
+          await hf(client, msg, args);
           break;
         case "hfttm":
           hfttm(msg, args);
