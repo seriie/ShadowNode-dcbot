@@ -76,8 +76,8 @@ export const handleRegisterButton = async (client, interaction) => {
     .addOptions([
       { label: "Asia (AS)", value: "AS" },
       { label: "Europe (EU)", value: "EU" },
-      { label: "Oceania (OCE)", value: "OCE" },
       { label: "North America (NA)", value: "NA" },
+      { label: "Oceania (OCE)", value: "OCE" },
     ]);
 
   const row = new ActionRowBuilder().addComponents(regionOpt);
