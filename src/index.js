@@ -1,20 +1,6 @@
 import { Client, GatewayIntentBits, Partials } from "discord.js";
 import dotenv from "dotenv";
 import { myLogs } from "./libs/utils/myLogs.js";
-import { startTerminal } from "./helper/startTerminal.js";
-
-startTerminal({
-  hello: async () => {
-    console.log("👋 Hello there!");
-  },
-  ban: async (args) => {
-    console.log(`🚫 Simulasi ban user: ${args[0] || "no user specified"}`);
-  },
-  exit: async () => {
-    console.log("Bye!");
-    process.exit(0);
-  },
-});
 
 dotenv.config();
 

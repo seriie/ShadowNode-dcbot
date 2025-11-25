@@ -305,7 +305,7 @@ export const handleModalSubmit = async (client, interaction) => {
     const note = interaction.fields.getTextInputValue("note");
 
     const total = Object.values(skills).reduce((a, b) => a + b, 0);
-    const ovr = total / Object.keys(skills).length;
+    const ovr = (total / Object.keys(skills).length) * 10;
     const rank = setEvalRank(ovr);
 
     const { data: user } = await supabase
@@ -313,8 +313,6 @@ export const handleModalSubmit = async (client, interaction) => {
       .select("region")
       .eq("discord_id", player)
       .single();
-
-    const region = user.region;
 
     const tierRoles = {
       1: {
@@ -414,6 +412,7 @@ export const handleModalSubmit = async (client, interaction) => {
       const msg = playerEvalMessage({
         count: count || 0,
         player: userData.discord_id,
+        ...skills,
         reasoning,
         improvement,
         note,
