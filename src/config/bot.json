@@ -1,5 +1,6 @@
 {
   "commands": {
+    "admin": [],
     "hf": {
       "isOpen": false,
       "bannedId": [

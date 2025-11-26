@@ -1,33 +1,57 @@
 import { myLogs } from "../libs/utils/myLogs.js";
+import { getConfig } from "../helper/getConfig.js";
 
 export const sendMsg = async (msg, client, args) => {
-  const ownerRoleId = process.env.OWNER_ROLE_ID;
+  const isOwner = process.env.OWNER_DISCORD_ID;
 
-  if (!msg.member.roles.cache.has(ownerRoleId)) {
+  // if (!msg.member.roles.cache.has(ownerRoleId)) {
+  //   myLogs(
+  //     client,
+  //     "notAllowed",
+  //     `${msg.author.username} tried but not allowed!`
+  //   );
+  //   return msg.reply("🚫 You are not allowed.");
+  // }
+
+  const config = getConfig();
+
+  const isAdmin = config.commands.admin.includes(msg.author.id);
+    if (!isOwner && !isAdmin) {
     myLogs(
       client,
       "notAllowed",
-      `${msg.author.displayName} trying to send dms but not allowed!`
+      `${msg.author.username} tried but not allowed!`
     );
-    await msg.reply("🚫 You are not allowed.");
-    return;
+    return msg.reply("🚫 You are not allowed.");
   }
 
-  myLogs(client, "loading", `${msg.author.displayName} trying to send dms`);
   const [id, ...messageParts] = args.split(" ");
-  const text = messageParts.join(" ");
+  let text = messageParts.join(" ");
 
   if (!id || !text) {
-    return msg.reply("❌ Invalid format! Use: `$sendmsg {id} {message}`");
+    return msg.reply("❌ Use: `$sendmsg {id} {message}`");
   }
 
   try {
+    const channel = client.channels.cache.get(id);
+
+    if (text.includes("@eve")) {
+      text = text.replace("@eve", "@everyone");
+    }
+
+    if (channel) {
+      await channel.send(text);
+      myLogs(client, "success", `Message sent to channel ${id}`);
+      return msg.reply(`📢 Message sent to channel <#${id}>`);
+    }
+
     const user = await client.users.fetch(id);
     await user.send(text);
-    msg.reply(`✅ Message sent to **${user.displayName}**`);
-    myLogs(client, "success", `Message sent to **${user.displayName}**`);
+
+    msg.reply(`✅ DM sent to **${user.username}**`);
+    myLogs(client, "success", `DM sent to ${user.username}`);
   } catch (err) {
     myLogs(client, "error", err);
-    msg.reply("⚠️ Failed to send DM! recheck the ID!");
+    msg.reply("⚠️ Failed to send! ID invalid?");
   }
 };

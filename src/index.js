@@ -28,6 +28,8 @@ import { sendMsg } from "./commands/sendMessage.js";
 import { hfttm } from "./commands/hfttm.js";
 import { hf } from "./commands/hf.js";
 import { fetchUser } from "./commands/fetchUser.js";
+import { setAdmin } from "./commands/setAdmin.js";
+import { removeAdmin } from "./commands/removeAdmin.js";
 
 const client = new Client({
   intents: [
@@ -73,6 +75,12 @@ client.on("messageCreate", async (msg) => {
 
     try {
       switch (command) {
+        case "setadmin":
+          await setAdmin(client, msg);
+          break;
+        case "remadmin":
+          await removeAdmin(client, msg);
+          break;
         case "halo":
           halo(client, msg);
           break;

@@ -97,7 +97,6 @@ export const handleEvaluateButton = async (client, interaction, page = 0) => {
       .addOptions(options)
   );
 
-  // tombol prev / next
   const prevBtn = new ButtonBuilder()
     .setCustomId(`rank_prev_${page}`)
     .setLabel("⬅️ Prev")

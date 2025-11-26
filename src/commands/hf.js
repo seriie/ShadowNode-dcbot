@@ -1,13 +1,8 @@
 import { readFileSync, writeFileSync } from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
 import { myLogs } from "../libs/utils/myLogs.js";
+import { getConfig, saveConfig } from "../helper/getConfig.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const configPath = path.resolve(__dirname, "../config/bot.json");
-const config = JSON.parse(readFileSync(configPath, "utf8"));
+const config = getConfig();
 
 const ownerId = process.env.OWNER_DISCORD_ID;
 
@@ -41,7 +36,7 @@ const optionsList = [
 export async function hf(client, msg, args) {
   const member = msg.member;
   const isOwner = msg.author.id === ownerId;
-  const isAdmin = config.commands.hf.admin.includes(msg.author.id);
+  const isAdmin = config.commands.admin.includes(msg.author.id);
 
   if (!member) return;
 
@@ -63,20 +58,19 @@ export async function hf(client, msg, args) {
 
   try {
     if (option === "open") {
-      const param = arg[1]?.toLowerCase();
       myLogs(
         client,
         "loading",
         `${msg.author.displayName} used HF OPEN command`
       );
-      
+
       if (config.commands.hf.isOpen) {
         myLogs(client, "alert", `HF command was already OPEN`);
         return msg.reply("🟢 Already OPEN... w-why open again b-baka 😤");
       }
 
       config.commands.hf.isOpen = true;
-      writeFileSync(configPath, JSON.stringify(config, null, 2));
+      saveConfig(config);
       myLogs(client, "alert", `HF command is now OPEN`);
       return msg.reply("🟢 **HF OPEN** — everyone allowed 💅✨");
     }
@@ -95,85 +89,9 @@ export async function hf(client, msg, args) {
       }
 
       config.commands.hf.isOpen = false;
-      writeFileSync(configPath, JSON.stringify(config, null, 2));
+      saveConfig(config);
       myLogs(client, "success", `HF command is now CLOSED`);
       return msg.reply("🔒 **HF CLOSED** — owner only heh 😤🔥");
-    }
-
-    // ===== SET ADMIN =====
-    if (option === "setadmin") {
-      myLogs(
-        client,
-        "loading",
-        `${msg.author.displayName} used HF SETADMIN command`
-      );
-      let target = msg.mentions.users.first();
-      console.log("targetArg", targetArg);
-      if (!target && targetArg) {
-        const match = targetArg.match(/^<@!?(\d+)>$/);
-        console.log("match", match);
-        if (match) target = msg.client.users.cache.get(match[1]);
-      }
-      if (!target) {
-        myLogs(client, "error", `No target found for SETADMIN command`);
-        return msg.reply(
-          "😭 Mention or reply the person to set as admin... b-bakaaa"
-        );
-      }
-      if (config.commands.hf.admin.includes(target.id)) {
-        myLogs(client, "alert", `<@${target.id}> is already HF admin`);
-        return msg.reply(
-          `😤 <@${target.id}> is **already admin**... why twice b-baka`
-        );
-      }
-      config.commands.hf.admin.push(target.id);
-      writeFileSync(configPath, JSON.stringify(config, null, 2));
-      myLogs(client, "success", `<@${target.id}> set as HF admin`);
-      return msg.reply(`🚀 <@${target.id}> set as HF admin, congrats~ 😤✨`);
-    }
-
-    // ===== REMOVE ADMIN =====
-    if (option === "removeadmin") {
-      myLogs(
-        client,
-        "loading",
-        `${msg.author.displayName} used HF REMOVEADMIN command`
-      );
-      let target;
-      if (msg.mentions.users.first()) {
-        target = msg.mentions.users.first();
-      } else if (msg.reference) {
-        try {
-          const refMsg = await msg.channel.messages.fetch(
-            msg.reference.messageId
-          );
-          target = refMsg.author;
-        } catch (err) {
-          console.log("Failed to fetch referenced message:", err);
-        }
-      }
-
-      if (!target) {
-        myLogs(client, "error", `No target found for REMOVEADMIN command`);
-        return msg.reply(
-          "😭 Mention or reply to the person to remove admin... b-bakaaa"
-        );
-      }
-      config.commands.hf.admin = config.commands.hf.admin.map((id) =>
-        id.trim()
-      );
-      if (!config.commands.hf.admin.includes(target.id)) {
-        myLogs(client, "alert", `<@${target.id}> is not HF admin`);
-        return msg.reply(
-          `🤨 <@${target.id}> is **not admin**... what ru doing 😭`
-        );
-      }
-      config.commands.hf.admin = config.commands.hf.admin.filter(
-        (id) => id !== target.id
-      );
-      writeFileSync(configPath, JSON.stringify(config, null, 2));
-      myLogs(client, "success", `<@${target.id}> removed from HF admin`);
-      return msg.reply(`✅ <@${target.id}> removed from admin... cyaa 😳`);
     }
 
     // ===== BAN =====
@@ -207,7 +125,11 @@ export async function hf(client, msg, args) {
       }
 
       if (target.id === ownerId) {
-        myLogs(client, "alert", `<@${msg.author.id}> can't ban <@${target.id}> cs he's owner`);
+        myLogs(
+          client,
+          "alert",
+          `<@${msg.author.id}> can't ban <@${target.id}> cs he's owner`
+        );
         return msg.reply(`:rage: You can't ban <@${target.id}> cs he's owner!`);
       }
 
@@ -219,7 +141,7 @@ export async function hf(client, msg, args) {
       }
 
       config.commands.hf.bannedId.push(target.id);
-      writeFileSync(configPath, JSON.stringify(config, null, 2));
+      saveConfig(config);
       myLogs(client, "success", `<@${target.id}> banned from HF`);
       return msg.reply(`🚫 <@${target.id}> banned from HF, bye~ 😤✋`);
     }
@@ -268,7 +190,7 @@ export async function hf(client, msg, args) {
         (id) => id !== target.id
       );
 
-      writeFileSync(configPath, JSON.stringify(config, null, 2));
+      saveConfig(config);
       myLogs(client, "success", `<@${target.id}> unbanned from HF`);
       return msg.reply(`✅ <@${target.id}> unbanned... w-welcome back 😳`);
     }
