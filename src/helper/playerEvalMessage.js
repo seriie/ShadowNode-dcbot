@@ -20,17 +20,11 @@ export function playerEvalMessage({
 
   textMsg += `## Player: **<@${player}>** ##\n\n`;
   textMsg += `🏀 **Skills:**\n`;
-  textMsg += `- **Offense:** ${makeProgressBar(offense, 10)} (${offense})\n`;
-  textMsg += `- **Defense:** ${makeProgressBar(defense, 10)} (${defense})\n`;
-  textMsg += `- **Playmaking:** ${makeProgressBar(
-    playmaking,
-    10
-  )} (${playmaking})\n`;
-  textMsg += `- **Style Mastery:** ${makeProgressBar(
-    style_mastery,
-    10
-  )} (${style_mastery})\n`;
-  textMsg += `- **Vision:** ${makeProgressBar(vision, 10)} (${vision})\n\n`;
+  textMsg += `> **Offense:** ${makeProgressBar(offense, 10)} (${offense})\n`;
+  textMsg += `> **Defense:** ${makeProgressBar(defense, 10)} (${defense})\n`;
+  textMsg += `> **Playmaking:** ${makeProgressBar(playmaking, 10)} (${playmaking})\n`;
+  textMsg += `> **Style Mastery:** ${makeProgressBar(style_mastery, 10)} (${style_mastery})\n`;
+  textMsg += `> **Vision:** ${makeProgressBar(vision, 10)} (${vision})\n\n`;
   textMsg += `**OVR:** ${makeProgressBar(ovr, 100)}\n`;
   textMsg += `**Rank:** ${rank}\n\n`;
 
