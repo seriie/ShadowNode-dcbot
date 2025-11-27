@@ -1,5 +1,5 @@
 export const setEvalRank = (ovr, maxOvr = 100) => {
-  const totalTiers = 7;
+  const totalTiers = 9;
   const step = maxOvr / totalTiers;
 
   let tier = Math.ceil((maxOvr - ovr) / step) + 1;

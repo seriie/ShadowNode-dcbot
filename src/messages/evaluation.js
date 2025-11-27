@@ -58,6 +58,15 @@ const PAGE_SIZE = 25;
 export const handleEvaluateButton = async (client, interaction, page = 0) => {
   if (!interaction.isButton()) return;
   if (interaction.customId !== "evaluate_player") return;
+  // const supremeTryoutHoster = process.env.SUPREME_TRYOUT_HOSTER;
+
+  // const member = interaction.member;
+  // if (!member.roles.cache.has(supremeTryoutHoster)) {
+  //   return interaction.reply({
+  //     content: "🚫 You don't have perms to do this action...",
+  //     ephemeral: true,
+  //   });
+  // }
 
   await interaction.deferReply({ ephemeral: true });
 
@@ -74,7 +83,6 @@ export const handleEvaluateButton = async (client, interaction, page = 0) => {
   const options = await Promise.all(
     users.map(async (u) => {
       if (!u.discord_id) {
-        console.log("⚠️ User tanpa discord_id:", u);
         return {
           label: "Unknown (No ID)",
           value: "0",
@@ -84,7 +92,7 @@ export const handleEvaluateButton = async (client, interaction, page = 0) => {
       const userData = await fetchUser(client, u.discord_id);
 
       return {
-        label: userData?.globalName || "Unknown",
+        label: `${userData?.globalName} (${u.region})` || "Unknown",
         value: String(u.discord_id),
       };
     })
@@ -356,6 +364,18 @@ export const handleModalSubmit = async (client, interaction) => {
         NA: process.env.TIER_7_NA,
         OCE: process.env.TIER_7_OCE,
       },
+      8: {
+        AS: process.env.TIER_8_AS,
+        EU: process.env.TIER_8_EU,
+        NA: process.env.TIER_8_NA,
+        OCE: process.env.TIER_8_OCE,
+      },
+      9: {
+        AS: process.env.TIER_9_AS,
+        EU: process.env.TIER_9_EU,
+        NA: process.env.TIER_9_NA,
+        OCE: process.env.TIER_9_OCE,
+      },
     };
 
     const userRegion = user.region || null;
@@ -372,7 +392,7 @@ export const handleModalSubmit = async (client, interaction) => {
         await guildMember.roles.remove(r);
       }
     }
-    
+
     await guildMember.roles.add(roleId);
 
     const { data: userData } = await supabase
@@ -419,6 +439,7 @@ export const handleModalSubmit = async (client, interaction) => {
         rank: rank,
         ranker: interaction.user.id,
         evalId,
+        region: userRegion
       });
 
       await evalResultChannel.send(msg);
