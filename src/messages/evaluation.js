@@ -57,7 +57,21 @@ export const handleSelectRegion = async (interaction) => {
   if (!interaction.isButton()) return;
   if (interaction.customId !== "evaluate_player") return;
 
+  const hosterRoles = [
+    process.env.SUPREME_TRYOUT_HOSTER,
+    process.env.OFFICIAL_TRYOUT_HOSTER,
+    process.env.TRIAL_TRYOUT_HOSTER,
+  ];
+
   await interaction.deferReply({ ephemeral: true });
+
+  const member = interaction.member;
+
+  const allowed = hosterRoles.some((roleId) => member.roles.cache.has(roleId));
+
+  if (!allowed) {
+    return interaction.editReply("🚫 You are not allowed to do this action");
+  }
 
   const regions = ["AS", "EU", "NA", "OCE"];
 
@@ -85,15 +99,7 @@ const PAGE_SIZE = 25;
 export const handleEvaluateButton = async (client, interaction, page = 0) => {
   if (!interaction.isStringSelectMenu()) return;
   if (interaction.customId !== "select_player_region_to_rank") return;
-  // const supremeTryoutHoster = process.env.SUPREME_TRYOUT_HOSTER;
-
-  // const member = interaction.member;
-  // if (!member.roles.cache.has(supremeTryoutHoster)) {
-  //   return interaction.reply({
-  //     content: "🚫 You don't have perms to do this action...",
-  //     ephemeral: true,
-  //   });
-  // }
+  
   const region = interaction.values[0];
 
   await interaction.deferReply({ ephemeral: true });
@@ -212,7 +218,7 @@ export const handleSelectPlayer = async (client, interaction) => {
   const player = interaction.values[0];
   const user = interaction.user;
 
-  if (player === user.username) {
+  if (player === user.id) {
     myLogs(client, "warn", `${user.username} is trying to eval himself`);
     return interaction.reply({
       content: "🚫 You can’t eval yourself, silly!",
@@ -258,7 +264,9 @@ export const handleSelectPlayer = async (client, interaction) => {
       .setCustomId(skill)
       .setLabel(`${skill} (1.0 - 10.0)`)
       .setStyle(TextInputStyle.Short)
-      .setPlaceholder(`Example: 8.5 *they current ${skill}: ${skillData[skill]}`)
+      .setPlaceholder(
+        `Example: 8.5 *they current ${skill}: ${skillData[skill]}`
+      )
       .setRequired(true)
   );
 
