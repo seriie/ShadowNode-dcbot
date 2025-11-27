@@ -53,11 +53,38 @@ export const evaluation = async (client) => {
   myLogs(client, "success", "Evaluation message sent successfully!");
 };
 
+export const handleSelectRegion = async (interaction) => {
+  if (!interaction.isButton()) return;
+  if (interaction.customId !== "evaluate_player") return;
+
+  await interaction.deferReply({ ephemeral: true });
+
+  const regions = ["AS", "EU", "NA", "OCE"];
+
+  const select = new StringSelectMenuBuilder()
+    .setCustomId("select_player_region_to_rank")
+    .setPlaceholder("Select region")
+    .addOptions(
+      regions.map((r) => ({
+        label: r,
+        value: r,
+      }))
+    );
+
+  const row = new ActionRowBuilder().addComponents(select);
+
+  await interaction.editReply({
+    content: "Choose a player to eval:",
+    ephemeral: true,
+    components: [row],
+  });
+};
+
 const PAGE_SIZE = 25;
 
 export const handleEvaluateButton = async (client, interaction, page = 0) => {
-  if (!interaction.isButton()) return;
-  if (interaction.customId !== "evaluate_player") return;
+  if (!interaction.isStringSelectMenu()) return;
+  if (interaction.customId !== "select_player_region_to_rank") return;
   // const supremeTryoutHoster = process.env.SUPREME_TRYOUT_HOSTER;
 
   // const member = interaction.member;
@@ -67,18 +94,19 @@ export const handleEvaluateButton = async (client, interaction, page = 0) => {
   //     ephemeral: true,
   //   });
   // }
+  const region = interaction.values[0];
 
   await interaction.deferReply({ ephemeral: true });
 
-  const allUsers = await getAllPlayers();
-
-  if (!allUsers.length) {
-    return interaction.editReply({
-      content: "✅ All players are already evaluated!",
-    });
-  }
+  const allUsers = await getAllPlayers(client, region, 100);
 
   const users = allUsers.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  if (allUsers.length < 1) {
+    return interaction.editReply({
+      content: `:exclamation: No player found in region ${region}`,
+    });
+  }
 
   const options = await Promise.all(
     users.map(async (u) => {
@@ -208,12 +236,29 @@ export const handleSelectPlayer = async (client, interaction) => {
     "style_mastery",
     "vision",
   ];
+
+  const { data } = await supabase
+    .from("evals")
+    .select("*")
+    .eq("discord_id", player)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const skillData = {
+    offense: data.offense,
+    defense: data.defense,
+    playmaking: data.playmaking,
+    style_mastery: data.style_mastery,
+    vision: data.vision,
+  };
+
   const inputs = skills.map((skill) =>
     new TextInputBuilder()
       .setCustomId(skill)
       .setLabel(`${skill} (1.0 - 10.0)`)
       .setStyle(TextInputStyle.Short)
-      .setPlaceholder("Example: 8.5")
+      .setPlaceholder(`Example: 8.5 *they current ${skill}: ${skillData[skill]}`)
       .setRequired(true)
   );
 
@@ -439,7 +484,7 @@ export const handleModalSubmit = async (client, interaction) => {
         rank: rank,
         ranker: interaction.user.id,
         evalId,
-        region: userRegion
+        region: userRegion,
       });
 
       await evalResultChannel.send(msg);

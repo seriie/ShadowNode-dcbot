@@ -13,6 +13,7 @@ import {
 import {
   evaluation,
   handleEvaluateButton,
+  handleSelectRegion,
   handlePagination,
   handleSelectPlayer,
   handleModalSubmit,
@@ -109,6 +110,7 @@ client.on("interactionCreate", async (interaction) => {
   await handleRegionSelect(client, interaction);
 
   // Evaluation
+  await handleSelectRegion(interaction)
   await handleSelectPlayer(client, interaction);
   await handleModalSubmit(client, interaction);
   await handleEvaluateButton(client, interaction);
