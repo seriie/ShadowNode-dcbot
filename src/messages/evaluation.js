@@ -42,7 +42,12 @@ export const evaluation = async (client) => {
     .setLabel("Evaluate 📝")
     .setStyle(ButtonStyle.Primary);
 
-  const row = new ActionRowBuilder().addComponents(evalButton);
+  const delEvalButton = new ButtonBuilder()
+    .setCustomId("delete_evaluation")
+    .setLabel("Delete evaluation 🗑️")
+    .setStyle(ButtonStyle.Danger);
+
+  const row = new ActionRowBuilder().addComponents(evalButton, delEvalButton);
 
   await channel.send({
     content: "**Player Evaluation Time!** 🌟",
@@ -88,7 +93,7 @@ export const handleSelectRegion = async (interaction) => {
   const row = new ActionRowBuilder().addComponents(select);
 
   await interaction.editReply({
-    content: "Choose a player to eval:",
+    content: "Choose player region to eval:",
     ephemeral: true,
     components: [row],
   });
@@ -99,7 +104,7 @@ const PAGE_SIZE = 25;
 export const handleEvaluateButton = async (client, interaction, page = 0) => {
   if (!interaction.isStringSelectMenu()) return;
   if (interaction.customId !== "select_player_region_to_rank") return;
-  
+
   const region = interaction.values[0];
 
   await interaction.deferReply({ ephemeral: true });
@@ -265,7 +270,7 @@ export const handleSelectPlayer = async (client, interaction) => {
       .setLabel(`${skill} (1.0 - 10.0)`)
       .setStyle(TextInputStyle.Short)
       .setPlaceholder(
-        `Example: 8.5 *they current ${skill}: ${skillData[skill]}`
+        `Example: 8.5 *${displayName} current ${skill}: ${skillData[skill]}`
       )
       .setRequired(true)
   );
@@ -539,4 +544,88 @@ export const handleOpenStep2 = async (interaction) => {
   );
 
   return interaction.showModal(modal);
+};
+
+export const delEval = async (client, interaction) => {
+  if (!interaction.isButton()) return;
+  if (interaction.customId !== "delete_evaluation") return;
+  const user = await fetchUser(client, interaction.user.id);
+
+  myLogs(client, "loading", `${user.displayName} trying to delete evaluation`);
+
+  const modal = new ModalBuilder()
+    .setCustomId("delete_eval_modal")
+    .setTitle("Delete Evaluation");
+
+  const inputEvalId = new TextInputBuilder()
+    .setCustomId("input_eval_id")
+    .setLabel("Evaluation ID")
+    .setStyle(TextInputStyle.Short)
+    .setPlaceholder("Paste evaluation ID here")
+    .setRequired(true);
+
+  modal.addComponents(
+    new ActionRowBuilder().addComponents(inputEvalId)
+  );
+
+  await interaction.showModal(modal);
+};
+
+export const handleDeleteEvalModal = async (client, interaction) => {
+  if (!interaction.isModalSubmit()) return;
+  if (interaction.customId !== "delete_eval_modal") return;
+
+  const evalId = interaction.fields.getTextInputValue("input_eval_id");
+
+  myLogs(client, "loading", `Trying to delete eval ID: ${evalId}`);
+
+  const { error } = await supabase
+    .from("evals")
+    .delete()
+    .eq("id", evalId);
+
+  if (error) {
+    myLogs(client, "error", error.message);
+    return interaction.reply({
+      content: "❌ Failed to delete evaluation!",
+      ephemeral: true,
+    });
+  }
+
+  myLogs(client, "success", `Deleted evaluation ${evalId}`);
+
+  // ========================
+  //  DELETE MESSAGE IN CHANNEL
+  // ========================
+
+  const evalChannelId = process.env.EVAL_RESULTS_CHANNEL_ID;
+  const channel = client.channels.cache.get(evalChannelId);
+
+  if (!channel) {
+    myLogs(client, "error", "Eval channel not found!");
+    return interaction.reply({
+      content: `🗑️ Eval deleted from DB, but channel not found.`,
+      ephemeral: true,
+    });
+  }
+
+  const messages = await channel.messages.fetch({ limit: 100 });
+
+  const targetMsg = messages.find(
+    (msg) =>
+      msg.author.id === client.user.id &&
+      msg.content.includes(evalId)
+  );
+
+  if (targetMsg) {
+    await targetMsg.delete();
+    myLogs(client, "success", `Deleted eval message in channel: ${evalId}`);
+  } else {
+    myLogs(client, "warn", `Eval message not found in channel for ID: ${evalId}`);
+  }
+
+  return interaction.reply({
+    content: `🗑️ Evaluation **${evalId}** deleted from DB and channel!`,
+    ephemeral: true,
+  });
 };

@@ -18,6 +18,8 @@ import {
   handleSelectPlayer,
   handleModalSubmit,
   handleOpenStep2,
+  delEval,
+  handleDeleteEvalModal
 } from "./messages/evaluation.js";
 
 // Ai features
@@ -116,6 +118,8 @@ client.on("interactionCreate", async (interaction) => {
   await handleEvaluateButton(client, interaction);
   await handlePagination(client, interaction);
   await handleOpenStep2(interaction);
+  await delEval(client, interaction);
+  await handleDeleteEvalModal(client, interaction);
 });
 
 client.login(process.env.TOKEN);
