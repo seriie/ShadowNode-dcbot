@@ -256,12 +256,14 @@ export const handleSelectPlayer = async (client, interaction) => {
     .limit(1)
     .maybeSingle();
 
+  const lastEval = data || {};
+
   const skillData = {
-    offense: data.offense,
-    defense: data.defense,
-    playmaking: data.playmaking,
-    style_mastery: data.style_mastery,
-    vision: data.vision,
+    offense: lastEval.offense ?? 0,
+    defense: lastEval.defense ?? 0,
+    playmaking: lastEval.playmaking ?? 0,
+    style_mastery: lastEval.style_mastery ?? 0,
+    vision: lastEval.vision ?? 0,
   };
 
   const inputs = skills.map((skill) =>
@@ -270,7 +272,10 @@ export const handleSelectPlayer = async (client, interaction) => {
       .setLabel(`${skill} (1.0 - 10.0)`)
       .setStyle(TextInputStyle.Short)
       .setPlaceholder(
-        `Example: 8.5 *${displayName} current ${skill}: ${skillData[skill]}`
+        `Example: 8.5 *${displayName} current ${skill}: ${
+          skillData?.[skill] ?? 0.0
+        }
+`
       )
       .setRequired(true)
   );
@@ -564,9 +569,7 @@ export const delEval = async (client, interaction) => {
     .setPlaceholder("Paste evaluation ID here")
     .setRequired(true);
 
-  modal.addComponents(
-    new ActionRowBuilder().addComponents(inputEvalId)
-  );
+  modal.addComponents(new ActionRowBuilder().addComponents(inputEvalId));
 
   await interaction.showModal(modal);
 };
@@ -579,10 +582,7 @@ export const handleDeleteEvalModal = async (client, interaction) => {
 
   myLogs(client, "loading", `Trying to delete eval ID: ${evalId}`);
 
-  const { error } = await supabase
-    .from("evals")
-    .delete()
-    .eq("id", evalId);
+  const { error } = await supabase.from("evals").delete().eq("id", evalId);
 
   if (error) {
     myLogs(client, "error", error.message);
@@ -612,16 +612,18 @@ export const handleDeleteEvalModal = async (client, interaction) => {
   const messages = await channel.messages.fetch({ limit: 100 });
 
   const targetMsg = messages.find(
-    (msg) =>
-      msg.author.id === client.user.id &&
-      msg.content.includes(evalId)
+    (msg) => msg.author.id === client.user.id && msg.content.includes(evalId)
   );
 
   if (targetMsg) {
     await targetMsg.delete();
     myLogs(client, "success", `Deleted eval message in channel: ${evalId}`);
   } else {
-    myLogs(client, "warn", `Eval message not found in channel for ID: ${evalId}`);
+    myLogs(
+      client,
+      "warn",
+      `Eval message not found in channel for ID: ${evalId}`
+    );
   }
 
   return interaction.reply({
